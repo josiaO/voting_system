@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>University Leadership Election</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
+    <!-- Authorship: Created by Barney Rolland, May 2025. All rights reserved. -->
+</head>
+<body>
+    <div class="nav">
+        {% if session.user_id %}
+            <span>Welcome, {{ session.reg_number }}!</span>
+            <a href="{{ url_for('logout') }}">Logout</a>
+            {% if session.is_admin %}
+                <a href="{{ url_for('admin') }}">Admin Dashboard</a>
+            {% endif %}
+        {% else %}
+            <a href="{{ url_for('login') }}">Login</a>
+            <a href="{{ url_for('register') }}">Register</a>
+        {% endif %}
+    </div>
+
+    <div class="container">
+        <h2>University Leadership Election</h2>
+
+        {% if message %}
+            <div class="admin-message">
+                <h3>Admin Announcement</h3>
+                <p>{{ message.content }}</p>
+                <small>Posted on {{ message.created_at }}</small>
+            </div>
+        {% endif %}
+
+        {% if winners.president or winners.vice %}
+            <div class="winner-announcement">
+                <h3>Election Winners</h3>
+                {% if winners.president %}
+                    <p>President: {{ winners.president }}</p>
+                {% endif %}
+                {% if winners.vice %}
+                    <p>Vice President: {{ winners.vice }}</p>
+                {% endif %}
+            </div>
+        {% endif %}
+
+        {% if error %}
+            <div class="error">{{ error }}</div>
+        {% endif %}
+
+        {% if not session.user_id %}
+            <p>Please <a href="{{ url_for('login') }}">login</a> or <a href="{{ url_for('register') }}">register</a> to vote.</p>
+        {% elif has_voted %}
+            <p>You have already voted!</p>
+        {% else %}
+            <form method="POST" action="{{ url_for('voting') }}" id="voteForm">
+                <div class="candidate-group">
+                    <h3>Presidential Candidates</h3>
+                    {% for candidate in presidents %}
+                        <div class="candidate">
+                            <img src="{{ url_for('static', filename=candidate.photo) }}" alt="{{ candidate.name }}"
+                                 class="candidate-img" data-photo-path="{{ candidate.photo }}"
+                                 data-loading="true">
+                            <div class="candidate-details">
+                                <label>
+                                    <input type="radio" name="president" value="{{ candidate.id }}" required>
+                                    Candidate #{{ loop.index }}: {{ candidate.name }}
+                                </label>
+                                <span>Education: {{ candidate.education }}</span>
+                                <span>Course: {{ candidate.course }}</span>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <div class="candidate-group">
+                    <h3>Vice Presidential Candidates</h3>
+                    {% for candidate in vice_presidents %}
+                        <div class="candidate">
+                            <img src="{{ url_for('static', filename=candidate.photo) }}" alt="{{ candidate.name }}"
+                                 class="candidate-img" data-photo-path="{{ candidate.photo }}"
+                                 data-loading="true">
+                            <div class="candidate-details">
+                                <label>
+                                    <input type="radio" name="vice" value="{{ candidate.id }}" required>
+                                    Candidate #{{ loop.index }}: {{ candidate.name }}
+                                </label>
+                                <span>Education: {{ candidate.education }}</span>
+                                <span>Course: {{ candidate.course }}</span>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <div class="form-group">
+                    <button type="submit" class="submit-btn">Submit Vote</button>
+                </div>
+            </form>
+        {% endif %}
+
+        <div class="stats">
+            <div>Total Registered Voters: {{ total_voters }}</div>
+            <div>Total Votes Cast: {{ votes_cast }}</div>
+            <button class="results-btn" onclick="toggleResults()">Show Results</button>
+        </div>
+
+        <div class="results" id="resultsSection">
+            <h3>Election Results</h3>
+            <h4>Presidential Candidates</h4>
+            <table>
+                <tr>
+                    <th>Candidate</th>
+                    <th>Votes</th>
+                    <th>Percentage</th>
+                </tr>
+                {% for candidate in president_results %}
+                    <tr>
+                        <td>{{ candidate.name }}</td>
+                        <td>{{ candidate.votes }}</td>
+                        <td>{{ "%.2f" % candidate.percentage }}%</td>
+                    </tr>
+                {% endfor %}
+            </table>
+            <h4>Vice Presidential Candidates</h4>
+            <table>
+                <tr>
+                    <th>Candidate</th>
+                    <th>Votes</th>
+                    <th>Percentage</th>
+                </tr>
+                {% for candidate in vice_results %}
+                    <tr>
+                        <td>{{ candidate.name }}</td>
+                        <td>{{ candidate.votes }}</td>
+                        <td>{{ "%.2f" % candidate.percentage }}%</td>
+                    </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Authorship: Created by Barney Rolland, May 2025. All rights reserved.
+        function toggleResults() {
+            const resultsSection = document.getElementById('resultsSection');
+            const button = document.querySelector('.results-btn');
+            if (resultsSection.style.display === 'none' || resultsSection.style.display === '') {
+                resultsSection.style.display = 'block';
+                button.textContent = 'Hide Results';
+                localStorage.setItem('resultsVisible', 'true');
+            } else {
+                resultsSection.style.display = 'none';
+                button.textContent = 'Show Results';
+                localStorage.setItem('resultsVisible', 'false');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const resultsSection = document.getElementById('resultsSection');
+            const button = document.querySelector('.results-btn');
+            const isVisible = localStorage.getItem('resultsVisible') === 'true';
+            resultsSection.style.display = isVisible ? 'block' : 'none';
+            button.textContent = isVisible ? 'Hide Results' : 'Show Results';
+        });
+
+        document.querySelectorAll('.candidate-img').forEach(img => {
+            img.addEventListener('load', () => {
+                img.removeAttribute('data-loading');
+                console.log(`Image loaded: ${img.getAttribute('data-photo-path')}`);
+            });
+            img.addEventListener('error', () => {
+                console.error(`Image failed to load: ${img.getAttribute('data-photo-path')}`);
+                img.src = "/main/placeholder.jpeg"; // Replace with your URL
+                img.removeAttribute('data-loading');
+            });
+        });
+
+        document.getElementById('voteForm')?.addEventListener('submit', function(event) {
+            const presidentSelected = document.querySelector('input[name="president"]:checked');
+            const viceSelected = document.querySelector('input[name="vice"]:checked');
+            if (!presidentSelected || !viceSelected) {
+                event.preventDefault();
+                alert('Please select one candidate for President and one for Vice President.');
+                return;
+            }
+            if (!confirm('Are you sure you want to submit your vote? This cannot be undone.')) {
+                event.preventDefault();
+            }
+        });
+    </script>
+</body>
+</html>

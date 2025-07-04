@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <style>
+        .nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(135deg,rgb(214, 210, 221), #1a5cd8);
+    padding: 5px 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    max-width: 700px;
+    margin: 0 auto;
+    border-bottom-left-radius: 2px;
+    border-bottom-right-radius: 2px;
+}
+
+.nav span {
+    font-weight: 300;
+    font-size: 1.2em;
+    color: #fff;
+    letter-spacing: 1px;
+}
+
+.nav a {
+    color: #fff;
+    text-decoration: none;
+    font-weight: 300;
+    font-size: 1.05em;
+    padding: 6px 12px;
+    border-radius: 5px;
+    transition: background 0.3s, transform 0.2s;
+}
+
+.nav a:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+}
+
+
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background:rgb(27, 69, 185); }
+        .container { max-width: 1100px; margin: auto; background: white; padding: 20px; border-radius: 8px; }
+        h2, h3 { color:rgb(92, 7, 221);}
+        .error { background: #ff0000; color: white; padding: 10px; margin-bottom: 10px; }
+        .success { background: #008000; color: white; padding: 10px; margin-bottom: 10px; }
+        .nav a { margin-right: 10px; color: #4a0ca8; justify-content: space-between;  max-width: 700px;}
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background:rgb(197, 193, 202); color: white; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; }
+        input, select, textarea { width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 4px; }
+        textarea { height: 100px; resize: vertical; }
+        button { background: #4a0ca8; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #5b0ed4; }
+        img.candidate-img { width: 50px; height: 50px; object-fit: cover; }
+        .current-message { background: #f0f0f0; padding: 10px; margin-bottom: 15px; border-radius: 4px; }
+        .current-message p { margin: 0; }
+        .current-message small { color: #666; }
+        .watermark-message { background: #e0e0e0; padding: 10px; margin-bottom: 15px; border-radius: 4px; font-style: italic; }
+    </style>
+    <!-- Authorship: Created by Barney Rolland, May 2025. All rights reserved. -->
+</head>
+<body>
+    <div class="nav">
+        <a href="{{ url_for('voting') }}">Voting</a>
+        <a href="{{ url_for('logout') }}">Logout</a>
+    </div>
+
+    <div class="container">
+        <h2>Admin Dashboard</h2>
+
+        {% if error %}
+            <div class="error">{{ error }}</div>
+        {% endif %}
+        {% if success %}
+            <div class="success">{{ success }}</div>
+        {% endif %}
+
+        <h3>System Information</h3>
+        {% if watermark %}
+            <div class="watermark-message">
+                <p>{{ watermark.content }}</p>
+                <small>Posted on {{ watermark.created_at }}</small>
+            </div>
+        {% endif %}
+
+        <h3>Post Message</h3>
+        {% if current_message %}
+            <div class="current-message">
+                <p><strong>Current Message:</strong> {{ current_message.content }}</p>
+                <small>Posted on {{ current_message.created_at }}</small>
+            </div>
+        {% endif %}
+        <form method="POST" name="post_message">
+            <div class="form-group">
+                <label for="message">Announcement (e.g., voting time, winner announcement)</label>
+                <textarea name="message" id="message" placeholder="Enter message (max 500 characters)" maxlength="500" required></textarea>
+            </div>
+            <button type="submit" name="post_message">Post Message</button>
+        </form>
+
+        <h3>Add Candidate</h3>
+        <form method="POST" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="name">Name</label>
+                <input type="text" name="name" id="name" required>
+            </div>
+            <div class="form-group">
+                <label for="position">Position</label>
+                <select name="position" id="position" required>
+                    <option value="">Select Position</option>
+                    <option value="president">President</option>
+                    <option value="vice">Vice President</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="education">Education</label>
+                <input type="text" name="education" id="education" required>
+            </div>
+            <div class="form-group">
+                <label for="course">Course</label>
+                <input type="text" name="course" id="course" required>
+            </div>
+            <div class="form-group">
+                <label for="photo">Profile Picture (JPG, JPEG, PNG, max 5MB)</label>
+                <input type="file" name="photo" id="photo" accept=".jpg,.jpeg,.png" required>
+            </div>
+            <button type="submit" name="add_candidate">Add Candidate</button>
+        </form>
+
+        <h3>Manage Candidates</h3>
+        <table>
+            <tr>
+                <th>Name</th>
+                <th>Position</th>
+                <th>Education</th>
+                <th>Course</th>
+                <th>Photo</th>
+                <th>Action</th>
+            </tr>
+            {% for candidate in all_candidates %}
+                <tr>
+                    <td>{{ candidate.name }}</td>
+                    <td>{{ candidate.position | capitalize }}</td>
+                    <td>{{ candidate.education }}</td>
+                    <td>{{ candidate.course }}</td>
+                    <td>
+                        <img src="{{ url_for('static', filename=candidate.photo) }}"
+                             alt="{{ candidate.name }}" class="candidate-img"
+                             data-photo-path="{{ candidate.photo }}"
+                             data-loading="true">
+                    </td>
+                    <td>
+                        <form method="POST" style="display:inline;">
+                            <input type="hidden" name="candidate_id" value="{{ candidate.id }}">
+                            <button type="submit" name="delete_candidate">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+            {% endfor %}
+        </table>
+
+        <h3>Manage Users</h3>
+        <table>
+            <tr>
+                <th><a href="{{ url_for('admin', sort='id', order='desc' if sort_by == 'id' and order == 'asc' else 'asc') }}">ID</a></th>
+                <th><a href="{{ url_for('admin', sort='reg_number', order='desc' if sort_by == 'reg_number' and order == 'asc' else 'asc') }}">Reg Number</a></th>
+                <th><a href="{{ url_for('admin', sort='full_name', order='desc' if sort_by == 'full_name' and order == 'asc' else 'asc') }}">Full Name</a></th>
+                <th><a href="{{ url_for('admin', sort='email', order='desc' if sort_by == 'email' and order == 'asc' else 'asc') }}">Email</a></th>
+                <th><a href="{{ url_for('admin', sort='phone', order='desc' if sort_by == 'phone' and order == 'asc' else 'asc') }}">Phone</a></th>
+                <th><a href="{{ url_for('admin', sort='level', order='desc' if sort_by == 'level' and order == 'asc') }}">Level</a></th>
+                <th>Admin</th>
+            </tr>
+            {% for user in users %}
+                <tr>
+                    <td>{{ user.id }}</td>
+                    <td>{{ user.reg_number }}</td>
+                    <td>{{ user.full_name }}</td>
+                    <td>{{ user.email }}</td>
+                    <td>{{ user.phone }}</td>
+                    <td>{{ user.level }}</td>
+                    <td>
+                        <form method="POST" style="display:inline;">
+                            <input type="hidden" name="user_id" value="{{ user.id }}">
+                            <input type="hidden" name="is_admin" value="{{ 0 if user.is_admin else 1 }}">
+                            <button type="submit" name="toggle_admin">{{ 'Remove Admin' if user.is_admin else 'Make Admin' }}</button>
+                        </form>
+                        <form method="POST" style="display:inline;">
+                            <input type="hidden" name="user_id" value="{{ user.id }}">
+                            <button type="submit" name="delete_user">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+            {% endfor %}
+        </table>
+
+        <h3>Announce Winners</h3>
+        <form method="POST">
+            <div class="form-group">
+                <label for="president">President</label>
+                <select name="president" id="president">
+                    <option value="">Select President</option>
+                    {% for candidate in presidents %}
+                        <option value="{{ candidate.id }}">{{ candidate.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="vice">Vice President</label>
+                <select name="vice" id="vice">
+                    <option value="">Select Vice President</option>
+                    {% for candidate in vice_presidents %}
+                        <option value="{{ candidate.id }}">{{ candidate.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" name="announce_winner">Announce Winners</button>
+        </form>
+    </div>
+
+    <script>
+        // Authorship: Created by Barney Rolland, May 2025. All rights reserved.
+        document.querySelectorAll('.candidate-img').forEach(img => {
+            img.addEventListener('load', () => {
+                img.removeAttribute('data-loading');
+                console.log(`Image loaded: ${img.getAttribute('data-photo-path')}`);
+            });
+            img.addEventListener('error', () => {
+                console.error(`Image failed to load: ${img.getAttribute('data-photo-path')}`);
+                img.src = ".png";
+                img.removeAttribute('data-loading');
+            });
+        });
+
+        document.querySelector('form[name="post_message"]').addEventListener('submit', function(event) {
+            const message = document.getElementById('message').value.trim();
+            if (!message) {
+                event.preventDefault();
+                alert('Message cannot be empty.');
+            } else if (message.length > 500) {
+                event.preventDefault();
+                alert('Message cannot exceed 500 characters.');
+            }
+        });
+    </script>
+</body>
+</html>
